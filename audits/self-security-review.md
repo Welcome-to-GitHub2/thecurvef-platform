@@ -8,20 +8,37 @@ This review was conducted from a defensive and ethical perspective, simulating r
 
 ---
 
-## 1. Input Validation Testing
+## 1. Input Validation & Injection Testing
 
-### Test Performed:
-- Submitted malformed inputs
-- Attempted script injection patterns (e.g., `<script>alert(1)</script>`)
-- Tested unexpected payload formats
-- Modified request payloads using browser DevTools
+### Scope
+### Testing focused on identifying:
+- Stored Cross-Site Scripting (XSS)
+- Malformed payload handling
+- Injection-style input manipulation
+- Backend validation robustness
 
-### Result:
-- Backend validation rejected invalid inputs
-- No script execution observed
-- Data sanitized before storage
-- No database corruption occurred
+## 1. Stored XSS Validation
 
+### Test Perfomed
+Submitted the following payload via the registration form: 
+    <script>alert("XSS")</script>
+
+### Observed Behaviour 
+- Payload successfully stored in database
+- Rendered in admin dashboard as plain text
+- No JavaScript execution occurred
+- No browser alert triggered
+
+### Security Controls Verified
+- No browser alert triggered
+- React automatic output escaping
+- No use of dangerouslySetInnerHTML
+- No raw DOM injection
+
+### Risk Assessment 
+Low — Output encoding functioning correctly.
+
+---
 ### Mitigation in Place:
 - Strict server-side validation
 - Controlled schema structure
