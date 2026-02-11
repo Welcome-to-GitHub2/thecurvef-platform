@@ -2,9 +2,9 @@
 
 ## Objective
 
-To perform a structured self-review of the platform’s security posture by identifying potential vulnerabilities, validating defensive controls, and documenting infrastructure-level observations.
+To perform a structured self-review of the platform’s security posture by identifying potential vulnerabilities, validating defensive controls, and documenting observed risks and remediation actions.
 
-This review was conducted from a defensive and ethical perspective.
+This review was conducted from a defensive and ethical perspective, simulating realistic misuse scenarios while ensuring no production data was compromised.
 
 ---
 
@@ -12,20 +12,21 @@ This review was conducted from a defensive and ethical perspective.
 
 ### Test Performed:
 - Submitted malformed inputs
-- Attempted script injection patterns (e.g., <script>alert(1)</script>)
+- Attempted script injection patterns (e.g., `<script>alert(1)</script>`)
 - Tested unexpected payload formats
-- Observed requests via browser Developer Tools (Network tab)
+- Modified request payloads using browser DevTools
 
 ### Result:
 - Backend validation rejected invalid inputs
-- No client-side script execution occurred
-- Structured error responses returned
-- No unsafe database behavior observed
+- No script execution observed
+- Data sanitized before storage
+- No database corruption occurred
 
 ### Mitigation in Place:
-- Server-side validation
+- Strict server-side validation
 - Controlled schema structure
 - No direct database query exposure
+- Structured error handling responses
 
 ---
 
@@ -33,33 +34,35 @@ This review was conducted from a defensive and ethical perspective.
 
 ### Test Performed:
 - Repeated API request submissions
-- Tested unsupported HTTP methods
-- Sent incomplete request bodies
+- Invalid HTTP methods
+- Missing required fields
+- Manual payload manipulation via Network tab
 
 ### Result:
 - Structured error responses returned
-- No application crash
-- No database corruption observed
-- System remained stable under repeated requests
+- No system crash observed
+- No unhandled exceptions exposed to the client
 
 ### Risk Identified:
 - Rate limiting not yet implemented
 
 ### Future Improvement:
 - Implement request throttling / rate limiting
+- Add API monitoring alerts for abuse patterns
 
 ---
 
-## 3. Environment Variable Exposure Check
+## 3. Environment Variable & Secrets Management Review
 
 ### Test Performed:
 - Verified repository contains no secrets
-- Confirmed .env files are excluded from version control
-- Reviewed code for hardcoded credentials
+- Confirmed `.env` file is excluded from version control
+- Checked for hardcoded credentials in source files
 
 ### Result:
 - All credentials secured via environment variables
-- No exposed API keys or database passwords
+- No exposed API keys or connection strings
+- Proper separation between development and production configuration
 
 ---
 
@@ -68,51 +71,64 @@ This review was conducted from a defensive and ethical perspective.
 Platform deployed via Vercel.
 
 ### Checks Performed:
-- HTTPS enforced
-- No open debug endpoints
-- No public admin routes exposed
-- Production build tested for error leakage
+- HTTPS enforced by default
+- No debug endpoints publicly exposed
+- No publicly accessible admin routes
+- Production environment variables managed securely
 
 ### Result:
-- Secure cloud deployment confirmed
-- No exposed sensitive endpoints detected
+Deployment aligns with secure-by-default cloud configuration practices.
 
 ---
 
-## 5. MongoDB Atlas IP Restriction Incident
+## 5. MongoDB Atlas IP Restriction Incident (Documented Operational Event)
 
-### Issue:
-Form submission returned 500 Internal Server Error.
+### Issue
 
-Terminal logs showed:
-- MongoServerSelectionError
+Form submission began returning:
+
+- `500 Internal Server Error`
+- `MongoServerSelectionError`
 - TLS handshake failure
 
-### Root Cause:
-MongoDB Atlas IP access rule expired (temporary 0.0.0.0/0 whitelist removed automatically).
+### Root Cause
 
-### Impact:
+The MongoDB Atlas temporary IP whitelist rule (`0.0.0.0/0`) expired after its one-week duration.
+
+As a result, the backend API could not establish a secure TLS connection to the MongoDB cluster.
+
+### Impact
+
 - Backend API unable to connect to database
-- Registration system failed
-- Form submissions returned HTTP 500
+- Registration system temporarily unavailable
+- Users experienced 500 errors on submission
 
-### Resolution:
-- Re-added IP address in MongoDB Atlas Network Access
-- Verified SRV connection string
+### Resolution
+
+- Re-added IP address to MongoDB Atlas Network Access
+- Verified SRV connection string configuration
 - Restarted development server
-- Confirmed successful 200 OK response
+- Confirmed successful `200 OK` response
+- Validated successful database write operation
 
-### Security Insight:
-Temporary IP whitelisting strengthens database access control but requires monitoring to prevent unexpected downtime.
+### Security Insight
+
+Temporary IP whitelisting enhances security by limiting attack surface.  
+However, expiration without monitoring can cause unexpected downtime.
+
+Future improvement:
+- Configure persistent IP rules where appropriate
+- Implement connection health monitoring
+- Add operational alerts for database connectivity failures
 
 ---
 
 ## 6. Identified Risk Areas (Ongoing Hardening)
 
-- No Web Application Firewall (WAF)
-- No rate limiting
-- Limited centralized logging visibility
-- No automated intrusion detection
+- No Web Application Firewall (WAF) configured
+- No intrusion detection monitoring
+- Limited production logging visibility
+- No automated alerting for infrastructure misconfiguration
 
 ---
 
@@ -121,9 +137,9 @@ Temporary IP whitelisting strengthens database access control but requires monit
 TheCurveF platform demonstrates:
 
 - Secure API design principles
-- Structured input validation
+- Controlled server-side validation
 - Environment variable protection
 - Secure cloud deployment practices
-- Infrastructure-level awareness (Atlas access control)
+- Real-world incident handling and root cause analysis
 
-Security hardening is iterative and continuously reviewed.
+Security improvements are iterative and continuously reviewed as the platform evolves.
