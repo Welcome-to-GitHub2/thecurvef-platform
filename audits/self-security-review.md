@@ -17,7 +17,7 @@ This review was conducted from a defensive and ethical perspective, simulating r
 - Injection-style input manipulation
 - Backend validation robustness
 
-## 1. Stored XSS Validation
+## 1.1 Stored XSS Validation
 
 ### Test Perfomed
 Submitted the following payload via the registration form: 
