@@ -16,6 +16,7 @@ This review was conducted from a defensive and ethical perspective, simulating r
 - Malformed payload handling
 - Injection-style input manipulation
 - Backend validation robustness
+- Client-to-server data handling integrity
 
 ## 1.1 Stored XSS Validation
 
@@ -28,6 +29,7 @@ Submitted the following payload via the registration form:
 - Rendered in admin dashboard as plain text
 - No JavaScript execution occurred
 - No browser alert triggered
+- Client-to-server data handling integrity
 
 ### Security Controls Verified
 - No browser alert triggered
@@ -41,9 +43,57 @@ Low — Output encoding functioning correctly.
 ---
 ### Mitigation in Place:
 - Strict server-side validation
-- Controlled schema structure
+- Structured request schema enforcement
 - No direct database query exposure
-- Structured error handling responses
+- Proper API response handling
+
+---
+
+## 1.2 Injection Simulation (SQL & NoSQL Style Payloads)
+### Objective
+To validate that backend logic does not interpret user-supplied input as executable query operators.
+
+---
+
+### Test A - SQL-Style Injection
+Payload submitted in Full Name field: ' OR 1=1 --
+
+### Expected Risk (Traditional SQL Systems)
+If raw SQL concatenation were used, this payload could:
+- Bypass authentication
+- Manipulate query logic
+- Return unintended database records
+
+### Observed Behaviour
+- Payload logged in terminal exactly as submitted
+- Stored in database as plain string
+- Rendered in admin dashboard without execution
+- API returned 200 OK
+- No query manipulation occurred
+
+### Conclusion
+Application is not vulnerable to classic SQL injection patterns. No dynamic SQL query construction detected.
+
+---
+
+### Test B – NoSQL Injection Attempt (MongoDB Operator Injection)
+Payload submitted: {"$ne": null}
+
+### Expected Risk 
+If backend query filters were constructed directly from request body input (e.g., find({ fullName: req.body.fullName })), MongoDB could interpret $ne as an operator instead of string data.
+
+This could potentially bypass logic constraints.
+
+### Observed Behaviour
+- Payload logged as literal string in terminal
+- Stored in MongoDB as plain text
+- Displayed normally in admin dashboard
+- No abnormal filtering behaviour observed
+- API returned 200 OK
+
+### Conclusion
+User input is treated strictly as data, not executable query operators.
+Current backend logic uses insert-based handling rather than dynamic filtering, significantly reducing injection risk.
 
 ---
 
