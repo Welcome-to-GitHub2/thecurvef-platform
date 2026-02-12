@@ -112,6 +112,7 @@ Testing was performed using PowerShell and direct HTTP requests to simulate exte
 #### Test Performed
 
 Sent an incomplete POST request directly to the API endpoint:
+
 Invoke-RestMethod -Uri http://localhost:3000/api/submit-form
 -Method POST
 -ContentType "application/json" `
@@ -146,6 +147,7 @@ Low — Input validation functioning correctly.
 #### Test Performed
 
 Attempted to access the submission endpoint using an unsupported HTTP method:
+
 Invoke-RestMethod -Uri http://localhost:3000/api/submit-form
 -Method GET
 
