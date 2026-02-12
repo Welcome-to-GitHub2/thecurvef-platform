@@ -2,328 +2,245 @@
 
 ## Objective
 
-To perform a structured self-review of the platform’s security posture by identifying potential vulnerabilities, validating defensive controls, and documenting observed risks and remediation actions.
+To perform a structured security assessment of the platform by simulating realistic misuse scenarios, validating defensive controls, and documenting operational findings.
 
-This review was conducted from a defensive and ethical perspective, simulating realistic misuse scenarios while ensuring no production data was compromised.
+This review was conducted in a controlled environment from a defensive perspective to improve system resilience and developer security awareness.
 
 ---
 
-## 1. Input Validation & Injection Testing
+# 1. Input Validation & Injection Testing
 
-### Scope
-### Testing focused on identifying:
-- Stored Cross-Site Scripting (XSS)
-- Malformed payload handling
-- Injection-style input manipulation
-- Backend validation robustness
-- Client-to-server data handling integrity
+## 1.1 Stored Cross-Site Scripting (XSS) Test
 
-## 1.1 Stored XSS Validation
+### Test Performed
+Submitted the following payload via the registration form:
 
-### Test Perfomed
-Submitted the following payload via the registration form: 
-    <script>alert("XSS")</script>
+```html
+<script>alert("XSS")</script>
+```
 
-### Observed Behaviour 
-- Payload successfully stored in database
+### Observed Behaviour
+- Payload stored in database
 - Rendered in admin dashboard as plain text
 - No JavaScript execution occurred
 - No browser alert triggered
-- Client-to-server data handling integrity
 
 ### Security Controls Verified
-- No browser alert triggered
 - React automatic output escaping
-- No use of dangerouslySetInnerHTML
+- No use of `dangerouslySetInnerHTML`
 - No raw DOM injection
+- No reflected execution in browser
 
-### Risk Assessment 
+### Risk Assessment
 Low — Output encoding functioning correctly.
-
----
-### Mitigation in Place:
-- Strict server-side validation
-- Structured request schema enforcement
-- No direct database query exposure
-- Proper API response handling
 
 ---
 
 ## 1.2 Injection Simulation (SQL & NoSQL Style Payloads)
-### Objective
-To validate that backend logic does not interpret user-supplied input as executable query operators.
 
----
+### Payload 1 – SQL-style
+```
+' OR 1=1 --
+```
 
-### Test A - SQL-Style Injection
-Payload submitted in Full Name field: ' OR 1=1 --
+### Payload 2 – NoSQL-style
+```json
+{"$ne": null}
+```
 
-### Expected Risk (Traditional SQL Systems)
-If raw SQL concatenation were used, this payload could:
-- Bypass authentication
-- Manipulate query logic
-- Return unintended database records
+### Test Objective
+To determine whether:
+- Backend interprets operators
+- MongoDB query logic can be manipulated
+- Data is treated as executable query input
 
 ### Observed Behaviour
-- Payload logged in terminal exactly as submitted
-- Stored in database as plain string
-- Rendered in admin dashboard without execution
-- API returned 200 OK
+- Payload stored as plain string
 - No query manipulation occurred
-
-### Conclusion
-Application is not vulnerable to classic SQL injection patterns. No dynamic SQL query construction detected.
-
----
-
-### Test B – NoSQL Injection Attempt (MongoDB Operator Injection)
-Payload submitted: {"$ne": null}
-
-### Expected Risk 
-If backend query filters were constructed directly from request body input (e.g., find({ fullName: req.body.fullName })), MongoDB could interpret $ne as an operator instead of string data.
-
-This could potentially bypass logic constraints.
-
-### Observed Behaviour
-- Payload logged as literal string in terminal
-- Stored in MongoDB as plain text
-- Displayed normally in admin dashboard
-- No abnormal filtering behaviour observed
-- API returned 200 OK
-
-### Conclusion
-User input is treated strictly as data, not executable query operators.
-Current backend logic uses insert-based handling rather than dynamic filtering, significantly reducing injection risk.
-
----
-
-## 2. API Abuse & Endpoint Restriction Testing
-
-### Objective
-
-To evaluate backend resilience against improper API usage, malformed requests, and unauthorized HTTP methods.
-
-Testing was performed using PowerShell and direct HTTP requests to simulate external client behavior outside the browser UI.
-
----
-
-### 2.1 Missing Required Fields (Validation Enforcement)
-
-#### Test Performed
-
-Sent an incomplete POST request directly to the API endpoint:
-
-Invoke-RestMethod -Uri http://localhost:3000/api/submit-form
--Method POST
--ContentType "application/json" `
--Body '{"formType":"registration"}'
-
-
-#### Expected Behavior
-
-The API should reject incomplete payloads and prevent database interaction.
-
-#### Observed Result
-
-- Server returned **400 Bad Request**
-- No database entry was created
-- Admin dashboard remained unchanged
-- No unhandled exceptions exposed to client
-
-#### Security Control Verified
-
-- Server-side validation enforced
-- Required fields validated before database interaction
-- Backend rejects malformed or incomplete submissions
-
-#### Risk Assessment
-
-Low — Input validation functioning correctly.
-
----
-
-### 2.2 Invalid HTTP Method Restriction
-
-#### Test Performed
-
-Attempted to access the submission endpoint using an unsupported HTTP method:
-
-Invoke-RestMethod -Uri http://localhost:3000/api/submit-form
--Method GET
-
-
-#### Expected Behavior
-
-Endpoint should reject unsupported HTTP methods.
-
-#### Observed Result
-
-- Server returned **405 Method Not Allowed**
-- No data exposure occurred
-- No database interaction triggered
-
-#### Security Control Verified
-
-- Endpoint strictly restricted to POST requests
-- Reduced attack surface
-- Proper HTTP method enforcement
-
-#### Risk Assessment
-
-Low — Route handling correctly configured.
-
----
-
-### 2.3 Payload Manipulation via DevTools
-
-#### Test Performed
-
-Modified request payload using browser Network tab to attempt:
-
-- Changing boolean values
-- Editing request body fields
-- Tampering with expected input structure
-
-#### Observed Result
-
-- Server maintained validation rules
-- Unauthorized modifications rejected or normalized
-- No privilege escalation or schema corruption observed
-
-#### Security Control Verified
-
-- Backend does not trust client-side input
-- All validation enforced server-side
-
----
-
----
-
-## 3. Environment Variable & Secrets Management Review
-
-### Objective
-
-To verify that no sensitive credentials, API keys, or database connection strings are exposed within the public repository.
-
----
-
-### Tests Performed
-
-- Searched codebase for `mongodb+srv` and connection strings using global search.
-- Verified `.env.local` is excluded from version control.
-- Checked repository history for accidental secret commits.
-- Confirmed no hardcoded credentials in API routes or configuration files.
-
----
-
-### Findings
-
-- MongoDB connection string stored securely inside `.env.local`.
-- `.env.local` correctly listed inside `.gitignore`.
-- Git tracking confirmed `.env.local` is not committed.
-- No exposed API keys or environment variables found in public repository.
-
----
+- No abnormal database behaviour
+- API returned `200 OK`
+- Admin dashboard displayed raw string safely
 
 ### Security Controls Verified
-
-- Environment-based configuration separation.
-- No secret exposure in source code.
-- Public repository safe for recruiter viewing.
-- Clean Git history without credential leakage.
-
----
+- Controlled schema insertion
+- No dynamic query construction
+- No direct operator injection
+- Structured request handling
 
 ### Risk Assessment
-
-Low — Secrets properly isolated and protected.
-
----
-
-### Security Insight
-
-Proper environment variable management is critical in public repositories.  
-This review confirms adherence to secure configuration management practices.
-
-Future improvement:
-- Consider using secret scanning tools (e.g., GitHub Secret Scanning).
-- Implement automated CI checks for credential leaks.
-
----
-## 4. Deployment Security Review
-
-Platform deployed via Vercel.
-
-### Checks Performed:
-- HTTPS enforced by default
-- No debug endpoints publicly exposed
-- No publicly accessible admin routes
-- Production environment variables managed securely
-
-### Result:
-Deployment aligns with secure-by-default cloud configuration practices.
+Low — Injection-style payloads treated as string input.
 
 ---
 
-## 5. MongoDB Atlas IP Restriction Incident (Documented Operational Event)
+# 2. HTTP Method & API Handling Validation
 
-### Issue
+## 2.1 Invalid POST Body
 
-Form submission began returning:
+### Test
+Manually submitted incomplete JSON:
+
+```json
+{ "formType": "registration" }
+```
+
+### Result
+- Server returned `400 Bad Request`
+- No database write occurred
+- No crash observed
+
+---
+
+## 2.2 Invalid HTTP Method (GET on POST Route)
+
+### Test
+Sent a `GET` request to:
+
+```
+/api/submit-form
+```
+
+### Result
+- Server returned `405 Method Not Allowed`
+- Correct RESTful behavior enforced
+- No unexpected exposure
+
+### Risk Assessment
+Low — API method validation functioning correctly.
+
+---
+
+# 3. Secrets & Environment Variable Protection
+
+## 3.1 Hardcoded Secrets Search
+
+### Test Performed
+Searched codebase for:
+- `mongodb+srv`
+- `process.env`
+- API keys
+- Connection strings
+
+### Result
+- No hardcoded secrets found
+- All sensitive values loaded via environment variables
+
+---
+
+## 3.2 .env File Protection Verification
+
+### Checks
+- `.env.local` confirmed present locally
+- `.env.local` confirmed excluded via `.gitignore`
+- `git status` confirmed not tracked
+- Repository contains no exposed credentials
+
+### Risk Assessment
+Low — Proper separation of configuration and source code.
+
+---
+
+# 4. Deployment Security Review (Production – Vercel)
+
+Production URL:
+https://thecurvef.co.za
+
+## 4.1 HTTPS Enforcement
+
+### Observed
+- HTTP requests redirect to HTTPS (307 redirect)
+- Strict transport security enabled
+
+Verified Headers:
+- `Strict-Transport-Security`
+- `X-Frame-Options: DENY`
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy`
+- `Permissions-Policy`
+
+### Risk Assessment
+Low — Secure transport correctly enforced.
+
+---
+
+## 4.2 Admin Route Exposure Observation
+
+### Route Tested
+```
+/admin
+```
+
+### Observed Behaviour
+- Publicly accessible
+- Returns `500 Internal Server Error`
+- No authentication protection implemented
+- Server-side exception triggered
+
+### Security Finding
+The admin route is not protected by access control logic and does not gracefully deny unauthorized access.
+
+### Recommended Improvement
+- Implement authentication middleware
+- Restrict route access to authorized users
+- Return `401 Unauthorized` or `403 Forbidden` instead of `500`
+
+### Risk Level
+Medium — Access control hardening required before scaling.
+
+---
+
+# 5. MongoDB Atlas IP Restriction Incident
+
+## Issue
+
+Form submissions began returning:
 
 - `500 Internal Server Error`
 - `MongoServerSelectionError`
 - TLS handshake failure
 
-### Root Cause
+## Root Cause
 
-The MongoDB Atlas temporary IP whitelist rule (`0.0.0.0/0`) expired after its one-week duration.
+MongoDB Atlas temporary IP whitelist rule (`0.0.0.0/0`) expired after its configured duration.
 
-As a result, the backend API could not establish a secure TLS connection to the MongoDB cluster.
+Backend was unable to establish a TLS connection to the database cluster.
 
-### Impact
+## Impact
 
-- Backend API unable to connect to database
 - Registration system temporarily unavailable
-- Users experienced 500 errors on submission
+- Database connectivity failure
+- Production 500 errors
 
-### Resolution
+## Resolution
 
-- Re-added IP address to MongoDB Atlas Network Access
-- Verified SRV connection string configuration
-- Restarted development server
-- Confirmed successful `200 OK` response
-- Validated successful database write operation
+- Re-added IP address in MongoDB Atlas Network Access
+- Verified SRV connection string
+- Restarted application
+- Confirmed successful `200 OK` submission
+- Verified database write operation
 
-### Security Insight
+## Security Insight
 
-Temporary IP whitelisting enhances security by limiting attack surface.  
-However, expiration without monitoring can cause unexpected downtime.
+Temporary IP whitelisting reduces attack surface but requires monitoring to prevent unexpected downtime.
 
-Future improvement:
-- Configure persistent IP rules where appropriate
-- Implement connection health monitoring
-- Add operational alerts for database connectivity failures
-
----
-
-## 6. Identified Risk Areas (Ongoing Hardening)
-
-- No Web Application Firewall (WAF) configured
-- No intrusion detection monitoring
-- Limited production logging visibility
-- No automated alerting for infrastructure misconfiguration
+Recommended improvements:
+- Implement monitoring alerts
+- Use controlled IP ranges
+- Add database connectivity health checks
 
 ---
 
-## Conclusion
+# Conclusion
 
 TheCurveF platform demonstrates:
 
-- Secure API design principles
-- Controlled server-side validation
-- Environment variable protection
-- Secure cloud deployment practices
-- Real-world incident handling and root cause analysis
+- Secure input handling
+- Proper output encoding
+- Protection against injection-style payloads
+- Correct REST method enforcement
+- Secure secrets management
+- HTTPS enforcement in production
+- Real-world operational incident handling
 
-Security improvements are iterative and continuously reviewed as the platform evolves.
+Security posture is actively reviewed and iteratively improved through hands-on testing and documented evidence.
+
+This review reflects practical defensive testing performed during development and deployment stages.
