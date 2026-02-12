@@ -97,25 +97,101 @@ Current backend logic uses insert-based handling rather than dynamic filtering, 
 
 ---
 
-## 2. API Abuse Simulation
+## 2. API Abuse & Endpoint Restriction Testing
 
-### Test Performed:
-- Repeated API request submissions
-- Invalid HTTP methods
-- Missing required fields
-- Manual payload manipulation via Network tab
+### Objective
 
-### Result:
-- Structured error responses returned
-- No system crash observed
-- No unhandled exceptions exposed to the client
+To evaluate backend resilience against improper API usage, malformed requests, and unauthorized HTTP methods.
 
-### Risk Identified:
-- Rate limiting not yet implemented
+Testing was performed using PowerShell and direct HTTP requests to simulate external client behavior outside the browser UI.
 
-### Future Improvement:
-- Implement request throttling / rate limiting
-- Add API monitoring alerts for abuse patterns
+---
+
+### 2.1 Missing Required Fields (Validation Enforcement)
+
+#### Test Performed
+
+Sent an incomplete POST request directly to the API endpoint:
+Invoke-RestMethod -Uri http://localhost:3000/api/submit-form
+-Method POST
+-ContentType "application/json" `
+-Body '{"formType":"registration"}'
+
+
+#### Expected Behavior
+
+The API should reject incomplete payloads and prevent database interaction.
+
+#### Observed Result
+
+- Server returned **400 Bad Request**
+- No database entry was created
+- Admin dashboard remained unchanged
+- No unhandled exceptions exposed to client
+
+#### Security Control Verified
+
+- Server-side validation enforced
+- Required fields validated before database interaction
+- Backend rejects malformed or incomplete submissions
+
+#### Risk Assessment
+
+Low — Input validation functioning correctly.
+
+---
+
+### 2.2 Invalid HTTP Method Restriction
+
+#### Test Performed
+
+Attempted to access the submission endpoint using an unsupported HTTP method:
+Invoke-RestMethod -Uri http://localhost:3000/api/submit-form
+-Method GET
+
+
+#### Expected Behavior
+
+Endpoint should reject unsupported HTTP methods.
+
+#### Observed Result
+
+- Server returned **405 Method Not Allowed**
+- No data exposure occurred
+- No database interaction triggered
+
+#### Security Control Verified
+
+- Endpoint strictly restricted to POST requests
+- Reduced attack surface
+- Proper HTTP method enforcement
+
+#### Risk Assessment
+
+Low — Route handling correctly configured.
+
+---
+
+### 2.3 Payload Manipulation via DevTools
+
+#### Test Performed
+
+Modified request payload using browser Network tab to attempt:
+
+- Changing boolean values
+- Editing request body fields
+- Tampering with expected input structure
+
+#### Observed Result
+
+- Server maintained validation rules
+- Unauthorized modifications rejected or normalized
+- No privilege escalation or schema corruption observed
+
+#### Security Control Verified
+
+- Backend does not trust client-side input
+- All validation enforced server-side
 
 ---
 
