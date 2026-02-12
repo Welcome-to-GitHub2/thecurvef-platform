@@ -197,20 +197,59 @@ Modified request payload using browser Network tab to attempt:
 
 ---
 
+---
+
 ## 3. Environment Variable & Secrets Management Review
 
-### Test Performed:
-- Verified repository contains no secrets
-- Confirmed `.env` file is excluded from version control
-- Checked for hardcoded credentials in source files
+### Objective
 
-### Result:
-- All credentials secured via environment variables
-- No exposed API keys or connection strings
-- Proper separation between development and production configuration
+To verify that no sensitive credentials, API keys, or database connection strings are exposed within the public repository.
 
 ---
 
+### Tests Performed
+
+- Searched codebase for `mongodb+srv` and connection strings using global search.
+- Verified `.env.local` is excluded from version control.
+- Checked repository history for accidental secret commits.
+- Confirmed no hardcoded credentials in API routes or configuration files.
+
+---
+
+### Findings
+
+- MongoDB connection string stored securely inside `.env.local`.
+- `.env.local` correctly listed inside `.gitignore`.
+- Git tracking confirmed `.env.local` is not committed.
+- No exposed API keys or environment variables found in public repository.
+
+---
+
+### Security Controls Verified
+
+- Environment-based configuration separation.
+- No secret exposure in source code.
+- Public repository safe for recruiter viewing.
+- Clean Git history without credential leakage.
+
+---
+
+### Risk Assessment
+
+Low — Secrets properly isolated and protected.
+
+---
+
+### Security Insight
+
+Proper environment variable management is critical in public repositories.  
+This review confirms adherence to secure configuration management practices.
+
+Future improvement:
+- Consider using secret scanning tools (e.g., GitHub Secret Scanning).
+- Implement automated CI checks for credential leaks.
+
+---
 ## 4. Deployment Security Review
 
 Platform deployed via Vercel.
